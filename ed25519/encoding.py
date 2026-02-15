@@ -1,6 +1,5 @@
-from .defaults import p
-from .field import FieldElement
 from .point import Point
+from .field import FieldElement
 
 def decode_little_endian(b: bytes) -> int:
     """

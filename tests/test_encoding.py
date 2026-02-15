@@ -21,7 +21,7 @@ class TestEncoding(unittest.TestCase):
 
         for y in test_values:
             # x is automatically calculated from y and the sign, so we only need to specify y and the parity of x
-            Pt = Point(y=FieldElement(y), is_odd=random.choice([True, False]))
+            Pt = Point(y=FieldElement(y), sign=random.choice([0, 1]))
             encoded = point_compression(Pt)
             decoded = point_decompression(encoded)
             # The decompressed point should have the same y-coordinate, x-coordinate, and the same parity of x as the original point

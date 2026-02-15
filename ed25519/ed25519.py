@@ -20,7 +20,7 @@ class ED25519:
         :param algorithm: The method to use for point addition and doubling (double_and_add or fast_scalar_mult).
         """
         self.algorithm = algorithm
-        self.base_point = Point(y=BASE_Y, is_odd=BASE_X_SIGN)
+        self.base_point = Point(y=BASE_Y, sign=BASE_X_SIGN)
 
     def scalar_mult(self, k: int, Pt: Point) -> Point:
         """
@@ -31,12 +31,15 @@ class ED25519:
         :return: The resulting point kP.
         """
         if self.algorithm == ED25519ScalarMultAlgorithm.SCALAR_MULT or self.algorithm == ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT:
-            return double_and_add(k, Pt)
+            result = double_and_add(k, Pt)
         elif self.algorithm == ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT:
-            return double_and_add(k, Pt.to_extended_coordinates()).to_affine_coordinates()
+            result = double_and_add(k, Pt.to_extended_coordinates())
         else:
             raise ValueError(f"Unsupported algorithm: {self.algorithm}")
         
+        if not isinstance(result, Point):
+            return result.to_affine_coordinates()
+        return result
     @staticmethod
     def generate_private_key() -> PrivateKey:
         """
@@ -143,26 +146,26 @@ class ED25519:
 
             k = decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()) % q
 
-            pk = point_decompression(pk.key_bytes)
+            pk_point = point_decompression(pk.key_bytes)
 
             lhs = self.scalar_mult(t, self.base_point)
-            right_side = R + self.scalar_mult(k, pk)
+            right_side = R + self.scalar_mult(k, pk_point)
         except ValueError:
             return False
         
         return lhs == right_side
     
 
-if __name__ == "__main__":
-    edd = ED25519(algorithm=ED25519Algorithm.FAST_SCALAR_MULT)
-    msg = Message(b"")
-    sk = bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
-    pk = edd.derive_public_key(PrivateKey(sk))
-    print("Public Key:", pk.key_bytes.hex())
-    sig = edd.sign(msg, PrivateKey(sk))
-    print("Signature:", sig.signature_bytes.hex())
-    is_valid = edd.verify(msg, sig, pk)
-    print("Signature is valid:", is_valid)
+# if __name__ == "__main__":
+#     edd = ED25519(algorithm=ED25519Algorithm.FAST_SCALAR_MULT)
+#     msg = Message(b"")
+#     sk = bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
+#     pk = edd.derive_public_key(PrivateKey(sk))
+#     print("Public Key:", pk.key_bytes.hex())
+#     sig = edd.sign(msg, PrivateKey(sk))
+#     print("Signature:", sig.signature_bytes.hex())
+#     is_valid = edd.verify(msg, sig, pk)
+#     print("Signature is valid:", is_valid)
 
     # msg1 = Message(bytes.fromhex("72")) 
     # sk1 = bytes.fromhex("4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb")

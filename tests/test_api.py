@@ -1,9 +1,9 @@
 import unittest
 from os import urandom
 from ed25519.defaults import q
-from ed25519 import ED25519, PrivateKey, PublicKey, Signature, Message
-from ed25519.encoding import decode_little_endian, encode_little_endian
 from ed25519.primitives import LengthError
+from ed25519.encoding import encode_little_endian
+from ed25519 import ED25519, PrivateKey, PublicKey, Signature, Message
 
 class TestED25519Boundary(unittest.TestCase):
     def setUp(self):
@@ -35,21 +35,21 @@ class TestED25519Boundary(unittest.TestCase):
 
         # 1) derive_public_key should only accept PrivateKey objects, and raise TypeError if it is not given a PrivateKey
         with self.assertRaises(TypeError):
-            self.ed25519_instance.derive_public_key("not a private key")
+            self.ed25519_instance.derive_public_key("not a private key")  # type: ignore
         with self.assertRaises(TypeError):
-            self.ed25519_instance.derive_public_key(PublicKey(b'\x22' * 32))
+            self.ed25519_instance.derive_public_key(PublicKey(b'\x22' * 32))  # type: ignore
         with self.assertRaises(TypeError):
-            self.ed25519_instance.derive_public_key(urandom(32))
+            self.ed25519_instance.derive_public_key(urandom(32))  # type: ignore
         # Valid instance should not raise
         self.ed25519_instance.derive_public_key(PrivateKey(b'\x00' * 32)) 
 
         # 2) sign should raise TypeError if sk is not a PrivateKey
         with self.assertRaises(TypeError):
-            self.ed25519_instance.sign(Message(b"test message"), "not a private key")
+            self.ed25519_instance.sign(Message(b"test message"), "not a private key")  # type: ignore
         with self.assertRaises(TypeError):
-            self.ed25519_instance.sign(Message(b"test message"), self.ed25519_instance.derive_public_key(self.ed25519_instance.generate_private_key()))
+            self.ed25519_instance.sign(Message(b"test message"), self.ed25519_instance.derive_public_key(self.ed25519_instance.generate_private_key()))  # type: ignore
         with self.assertRaises(TypeError):
-            self.ed25519_instance.sign(Message(b"test message"), urandom(32))
+            self.ed25519_instance.sign(Message(b"test message"), urandom(32))  # type: ignore
         # Valid instance should not raise
         self.ed25519_instance.sign(Message(b"test message"), self.ed25519_instance.generate_private_key())
 
@@ -59,11 +59,11 @@ class TestED25519Boundary(unittest.TestCase):
         msg = Message(b"p79-assignment-2")
         signature = self.ed25519_instance.sign(msg, sk)
         with self.assertRaises(TypeError):
-            self.ed25519_instance.verify(msg, signature, "not a public key")
+            self.ed25519_instance.verify(msg, signature, "not a public key")  # type: ignore
         with self.assertRaises(TypeError):
-            self.ed25519_instance.verify(msg, signature, self.ed25519_instance.generate_private_key())
+            self.ed25519_instance.verify(msg, signature, self.ed25519_instance.generate_private_key())  # type: ignore
         with self.assertRaises(TypeError):
-            self.ed25519_instance.verify(msg, signature, urandom(32))
+            self.ed25519_instance.verify(msg, signature, urandom(32))  # type: ignore
         # Valid instance should not raise
         self.assertTrue(self.ed25519_instance.verify(msg, signature, pk))
     
@@ -127,7 +127,6 @@ class TestED25519Boundary(unittest.TestCase):
     def test_signature_non_collision(self):
         # Test that two different messages signed with the same private key produce different signatures
         sk1 = self.ed25519_instance.generate_private_key()
-        pk1 = self.ed25519_instance.derive_public_key(sk1)
 
         msg1 = Message(b"p79-assignment-2")
         msg2 = Message(b"p79-assignment-2 with a twist")
@@ -139,7 +138,6 @@ class TestED25519Boundary(unittest.TestCase):
 
         # Test that signing the same message with different private keys produces different signatures
         sk2 = self.ed25519_instance.generate_private_key()
-        pk2 = self.ed25519_instance.derive_public_key(sk2)
 
         signature21 = self.ed25519_instance.sign(msg1, sk2)
         signature22 = self.ed25519_instance.sign(msg2, sk2)
@@ -163,7 +161,6 @@ class TestED25519Boundary(unittest.TestCase):
         # Test that signing the same message with the same private key produces the same signature (determinism)
         # This is because the nonce is derived from the private key and message, so it stays same.
         sk = self.ed25519_instance.generate_private_key()
-        pk = self.ed25519_instance.derive_public_key(sk)
         msg = Message(b"p79-assignment-2")
 
         signature1 = self.ed25519_instance.sign(msg, sk)

@@ -1,6 +1,6 @@
 import os
 import unittest
-from ed25519 import ED25519, ED25519ScalarMultAlgorithm, Point, Message
+from ed25519 import ED25519, ED25519ScalarMultAlgorithm, Message
 # from x25519.encoding import decode_x_coordinate
 
 class TestX25519Agreement(unittest.TestCase):

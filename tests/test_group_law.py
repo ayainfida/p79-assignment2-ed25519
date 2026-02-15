@@ -9,7 +9,7 @@ These are not exhaustive but cover basic properties, necessary for correctness.
 
 class TestGroupLaw(unittest.TestCase):
     def setUp(self):
-        self.Pt = Point(y=BASE_Y, is_odd=BASE_X_SIGN)
+        self.Pt = Point(y=BASE_Y, sign=BASE_X_SIGN)
         self.ExtendedPt = self.Pt.to_extended_coordinates()
 
     def test_base_point_is_valid(self):

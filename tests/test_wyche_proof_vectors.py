@@ -1,7 +1,6 @@
 import json
 import unittest
-from ed25519 import ED25519, ED25519ScalarMultAlgorithm, PrivateKey, PublicKey, Signature, Message
-from ed25519.primitives import LengthError
+from ed25519 import ED25519, ED25519ScalarMultAlgorithm, PublicKey, Signature, Message
 
 class TestWycheProof(unittest.TestCase):
     def setUp(self):
@@ -14,7 +13,7 @@ class TestWycheProof(unittest.TestCase):
     """
     Helper method to set up test metadata for a given test case.
     """
-    def _set_test_metadata(self, sk: PrivateKey, pk: PublicKey, msg: Message, sig: Signature, result: bool) -> dict:
+    def _set_test_metadata(self, pk: PublicKey, msg: Message, sig: Signature, result: bool) -> dict:
         return {
             'pk': pk,
             'msg': msg,
@@ -31,7 +30,7 @@ class TestWycheProof(unittest.TestCase):
         # Test signature verification
         try:
             verification_result = ed25519_instance.verify(msg, sig, pk)
-        except Exception as e:
+        except ValueError:
             verification_result = False
         
         # Check if the signature verification returns the expected result        
@@ -50,7 +49,7 @@ class TestWycheProof(unittest.TestCase):
                 sig = Signature(bytes.fromhex(t["sig"]))
                 expected = (t["result"] == "valid")
 
-                metadata = self._set_test_metadata(sk=None, pk=pk, msg=msg, sig=sig, result=expected)
+                metadata = self._set_test_metadata(pk=pk, msg=msg, sig=sig, result=expected)
 
                 self._test_vector(metadata, ed25519_instance)
                 self.count += 1

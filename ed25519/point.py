@@ -2,23 +2,24 @@ from dataclasses import dataclass
 
 from .field import FieldElement
 
-from .defaults import d, p
+from .defaults import d
 
 
 @dataclass
 class Point:
-    def __init__(self, y: FieldElement, is_odd: bool, x: FieldElement | None = None):
+    def __init__(self, y: FieldElement, sign: int, x: FieldElement | None = None):
         """
         Initialize a point on the Edwards curve defined by the equation:
         -x^2 + y^2 = 1 + d*x^2*y^2 (mod p)
         
         :param x: The x-coordinate of the point (optional).
         :param y: The y-coordinate of the point.
+        :param sign: The sign of the x-coordinate (0 for positive, 1 for negative).
         """
         assert isinstance(y, FieldElement), "y must be a FieldElement"
 
         self.y = y
-        self.is_odd = is_odd
+        self.sign = sign
 
         if x is not None:
             assert isinstance(x, FieldElement), "x must be a FieldElement"
@@ -65,7 +66,7 @@ class Point:
             return None
         
         # Check if x has the correct parity
-        if int(self.is_odd) != (x.value & 1):
+        if self.sign != (x.value & 1):
             return -x
         else:
             return x
@@ -83,9 +84,9 @@ class Point:
         x3 = (x1 * y2 + x2 * y1) / (FieldElement(1) + d * x1 * x2 * y1 * y2)
         y3 = (y1 * y2 + x1 * x2) / (FieldElement(1) - d * x1 * x2 * y1 * y2)
 
-        is_odd = int(x3.value & 1)
+        sign = int(x3.value & 1)
 
-        return Point(y3, is_odd, x3)
+        return Point(y3, sign, x3)
     
     def double(self) -> "Point":
         """
@@ -136,8 +137,8 @@ class ExtendedPoint:
         """
         x = self.X / self.Z
         y = self.Y / self.Z
-        is_odd = int(x.value & 1)
-        return Point(y, is_odd, x)
+        sign = int(x.value & 1)
+        return Point(y, sign, x)
     
     def __add__(self, other: "ExtendedPoint") -> "ExtendedPoint":
         """
@@ -180,15 +181,6 @@ class ExtendedPoint:
             return NotImplemented
         return self.X == other.X and self.Y == other.Y and self.Z == other.Z and self.T == other.T
     
-    def to_affine_coordinates(self) -> Point:
-        """
-        Convert the point from extended homogeneous coordinates back to affine coordinates (x, y).
-        """
-        x = self.X / self.Z
-        y = self.Y / self.Z
-        is_odd = int(x.value & 1)
-        return Point(y, is_odd, x)
-    
     @staticmethod
     def identity() -> "ExtendedPoint":
         """
@@ -198,5 +190,5 @@ class ExtendedPoint:
 
 
 if __name__ == "__main__":
-    x = Point(y=FieldElement(1), is_odd=1)
+    x = Point(y=FieldElement(1), sign=1)
     print((x + x).x, (x + x).y)

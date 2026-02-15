@@ -8,11 +8,11 @@ cd "$(dirname "$0")"
 echo ""
 echo "--- BUILDING ---"
 echo ""
-docker build -t p79-assignment1-runner .
+docker build -t p79-assignment2-runner .
 
 
 # Run the container
 echo ""
 echo "--- RUNNING ---"
 echo ""
-docker run --rm p79-assignment1-runner
+docker run --rm p79-assignment2-runner

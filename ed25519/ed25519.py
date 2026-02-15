@@ -5,7 +5,7 @@ from .point import Point
 from hashlib import sha512
 from .methods import double_and_add
 from .defaults import BASE_X_SIGN, BASE_Y, q
-from .primitives import PrivateKey, PublicKey, Signature, Message
+from .primitives import LengthError, PrivateKey, PublicKey, Signature, Message
 from .encoding import decode_little_endian, decode_scalar, encode_little_endian, point_compression, point_decompression
 
 class ED25519ScalarMultAlgorithm(Enum):
@@ -54,6 +54,9 @@ class ED25519:
         """
         if not isinstance(sk, PrivateKey):
             raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
+        
+        if len(sk.key_bytes) != 32:
+            raise LengthError(f"Private key must be 32 bytes long. Provided length: {len(sk.key_bytes)}")
 
         # Hash the private key to get a secret scalar and a nonce
         h = sha512(sk.key_bytes).digest()
@@ -78,6 +81,8 @@ class ED25519:
             raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
         if not isinstance(message, Message):
             raise TypeError("message must be an instance of Message, given type: {}".format(type(message)))
+        if len(sk.key_bytes) != 32:
+            raise LengthError(f"Private key must be 32 bytes long. Provided length: {len(sk.key_bytes)}")
 
         # Hash the private key to get a secret scalar and a nonce
         h = sha512(sk.key_bytes).digest()
@@ -120,10 +125,15 @@ class ED25519:
         if not isinstance(pk, PublicKey):
             raise TypeError("pk must be an instance of PublicKey, given type: {}".format(type(pk)))
         
+        if len(signature.signature_bytes) != 64:
+            raise LengthError(f"Signature must be 64 bytes long. Provided length: {len(signature.signature_bytes)}")
+        if len(pk.key_bytes) != 32:
+            raise LengthError(f"Public key must be 32 bytes long. Provided length: {len(pk.key_bytes)}")
+        
         R_bytes = signature.signature_bytes[:32]
         t_bytes = signature.signature_bytes[32:]
 
-        # If t is not in the range [0, q-1], the signature is invalid (since t is supposed to be a scalar mod q) ~ Section 5.1.7. of RFC 8032
+        # If t is not in the range [0, q), the signature is invalid (since t is supposed to be a scalar mod q) ~ Section 5.1.7. of RFC 8032
         if decode_little_endian(t_bytes) >= q:
             return False
 

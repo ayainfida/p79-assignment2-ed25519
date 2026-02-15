@@ -3,6 +3,7 @@ from os import urandom
 from ed25519.defaults import q
 from ed25519 import ED25519, PrivateKey, PublicKey, Signature, Message
 from ed25519.encoding import decode_little_endian, encode_little_endian
+from ed25519.primitives import LengthError
 
 class TestED25519Boundary(unittest.TestCase):
     def setUp(self):
@@ -13,16 +14,16 @@ class TestED25519Boundary(unittest.TestCase):
     """
 
     def test_private_key_length(self):
-        # Test if private key given is not 32 bytes raises ValueError for incorrect lengths and works for correct length
+        # Test if private key given is not 32 bytes raises LengthError for incorrect lengths and works for correct length
 
-        # 1) Not 32 bytes, should raise ValueError
-        with self.assertRaises(ValueError):
+        # 1) Not 32 bytes, should raise LengthError
+        with self.assertRaises(LengthError):
             self.ed25519_instance.derive_public_key(PrivateKey(b'\x11' * 31))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LengthError):
             self.ed25519_instance.derive_public_key(PrivateKey(b'\x22' * 33))
 
-        # 2) Empty byte string, should raise ValueError
-        with self.assertRaises(ValueError):
+        # 2) Empty byte string, should raise LengthError
+        with self.assertRaises(LengthError):
             self.ed25519_instance.derive_public_key(PrivateKey(b''))
     
         # 3) Valid length (32 bytes), should not raise
@@ -67,20 +68,20 @@ class TestED25519Boundary(unittest.TestCase):
         self.assertTrue(self.ed25519_instance.verify(msg, signature, pk))
     
     def test_signature_length_validation(self):
-        # Test that providing a signature of incorrect length raises ValueError
+        # Test that providing a signature of incorrect length raises LengthError
         sk = self.ed25519_instance.generate_private_key()
         pk = self.ed25519_instance.derive_public_key(sk)
         msg = Message(b"p79-assignment-2")
         valid_signature = self.ed25519_instance.sign(msg, sk)
   
-        # 1) Signature not 64 bytes should raise ValueError
-        with self.assertRaises(ValueError):
+        # 1) Signature not 64 bytes should raise LengthError
+        with self.assertRaises(LengthError):
             self.ed25519_instance.verify(msg, Signature(b'\x33' * 63), pk)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LengthError):
             self.ed25519_instance.verify(msg, Signature(b'\x44' * 65), pk)
         
-        # 2) Empty signature should raise ValueError
-        with self.assertRaises(ValueError):
+        # 2) Empty signature should raise LengthError
+        with self.assertRaises(LengthError):
             self.ed25519_instance.verify(msg, Signature(b''), pk)
 
         # 3) Valid signature length should not raise

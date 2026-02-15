@@ -11,9 +11,11 @@ def double_and_add(k: int, Pt: Point | ExtendedPoint) -> Point | ExtendedPoint:
         (Point | ExtendedPoint): The resulting point kP.
     """
     assert isinstance(Pt, Point) or isinstance(Pt, ExtendedPoint), "Pt must be a Point or ExtendedPoint instance."
-    assert k >= 1, "k must be a positive integer"
+    assert k >= 0, f"k must be a positive integer {k} is not valid."
 
-    if k == 1:
+    if k == 0:
+        return Pt.identity()
+    elif k == 1:
         return Pt
     elif k & 1 == 0: # k is even: we double the point
         return double_and_add(k // 2, Pt).double()

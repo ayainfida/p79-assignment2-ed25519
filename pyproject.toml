@@ -1,0 +1,13 @@
+[project]
+name = "p79-assignment2-ed25519"
+version = "0.1.0"
+description = "Assignment 2: Ed25519 implemented from scratch"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ty>=0.0.13",
+    "ruff>=0.14.13",
+]

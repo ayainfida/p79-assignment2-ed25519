@@ -5,15 +5,15 @@ from .point import Point
 from hashlib import sha512
 from .methods import double_and_add
 from .defaults import BASE_X_SIGN, BASE_Y, q
-from .pirmitives import PrivateKey, PublicKey, Signature, Message
-from .encodiing import decode_little_endian, decode_scalar, encode_little_endian, point_compression, point_decompression
+from .primitives import PrivateKey, PublicKey, Signature, Message
+from .encoding import decode_little_endian, decode_scalar, encode_little_endian, point_compression, point_decompression
 
-class ED25519Algorithm(Enum):
-    DOUBLE_AND_ADD = "double_and_add"
+class ED25519ScalarMultAlgorithm(Enum):
+    SCALAR_MULT = "scalar_mult"
     FAST_SCALAR_MULT = "fast_scalar_mult"
 
 class ED25519:
-    def __init__(self, algorithm: ED25519Algorithm = ED25519Algorithm.DOUBLE_AND_ADD):
+    def __init__(self, algorithm: ED25519ScalarMultAlgorithm = ED25519ScalarMultAlgorithm.SCALAR_MULT):
         """
         Initialize the EDD25519 class with the specified algorithm.
         
@@ -30,11 +30,10 @@ class ED25519:
         :param Pt: The point to multiply.
         :return: The resulting point kP.
         """
-        if self.algorithm == ED25519Algorithm.DOUBLE_AND_ADD:
+        if self.algorithm == ED25519ScalarMultAlgorithm.SCALAR_MULT or self.algorithm == ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT:
             return double_and_add(k, Pt)
-        elif self.algorithm == ED25519Algorithm.FAST_SCALAR_MULT:
-            # Implement a more efficient scalar multiplication method here using extended homogeneous coordinates.
-            raise NotImplementedError("Fast scalar multiplication is not yet implemented.")
+        elif self.algorithm == ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT:
+            return double_and_add(k, Pt.to_extended_coordinates()).to_affine_coordinates()
         else:
             raise ValueError(f"Unsupported algorithm: {self.algorithm}")
         
@@ -53,6 +52,9 @@ class ED25519:
         :param sk: The private key to derive the public key from.
         :return: The corresponding public key.
         """
+        if not isinstance(sk, PrivateKey):
+            raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
+
         # Hash the private key to get a secret scalar and a nonce
         h = sha512(sk.key_bytes).digest()
 
@@ -72,6 +74,11 @@ class ED25519:
         :param sk: The private key to use for signing.
         :return: The signature bytes.
         """
+        if not isinstance(sk, PrivateKey):
+            raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
+        if not isinstance(message, Message):
+            raise TypeError("message must be an instance of Message, given type: {}".format(type(message)))
+
         # Hash the private key to get a secret scalar and a nonce
         h = sha512(sk.key_bytes).digest()
 
@@ -106,27 +113,38 @@ class ED25519:
         :param pk: The public key of the sender who claimed to send this message.
         :return: True if the signature is valid, False otherwise.
         """
-        if len(signature.signature_bytes) != 64:
-            raise ValueError("Signature must be 64 bytes long.")
+        if not isinstance(message, Message):
+            raise TypeError("message must be an instance of Message, given type: {}".format(type(message)))
+        if not isinstance(signature, Signature):
+            raise TypeError("signature must be an instance of Signature, given type: {}".format(type(signature)))
+        if not isinstance(pk, PublicKey):
+            raise TypeError("pk must be an instance of PublicKey, given type: {}".format(type(pk)))
         
         R_bytes = signature.signature_bytes[:32]
         t_bytes = signature.signature_bytes[32:]
 
-        R = point_decompression(R_bytes)
-        t = decode_little_endian(t_bytes) % q
+        # If t is not in the range [0, q-1], the signature is invalid (since t is supposed to be a scalar mod q) ~ Section 5.1.7. of RFC 8032
+        if decode_little_endian(t_bytes) >= q:
+            return False
 
-        k = decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()) % q
+        try:
+            R = point_decompression(R_bytes)
+            t = decode_little_endian(t_bytes) % q
 
-        pk = point_decompression(pk.key_bytes)
+            k = decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()) % q
 
-        lhs = self.scalar_mult(t, self.base_point)
-        right_side = R + self.scalar_mult(k, pk)
+            pk = point_decompression(pk.key_bytes)
 
+            lhs = self.scalar_mult(t, self.base_point)
+            right_side = R + self.scalar_mult(k, pk)
+        except ValueError:
+            return False
+        
         return lhs == right_side
     
 
 if __name__ == "__main__":
-    edd = ED25519()
+    edd = ED25519(algorithm=ED25519Algorithm.FAST_SCALAR_MULT)
     msg = Message(b"")
     sk = bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
     pk = edd.derive_public_key(PrivateKey(sk))

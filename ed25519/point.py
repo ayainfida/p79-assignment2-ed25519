@@ -74,7 +74,6 @@ class Point:
         """
         Add two points on the Edwards curve.
         """
-        
         x1, y1 = self.x, self.y
         x2, y2 = other.x, other.y
 
@@ -101,6 +100,101 @@ class Point:
         if not isinstance(other, Point):
             return NotImplemented
         return self.x == other.x and self.y == other.y
+    
+    def to_extended_coordinates(self) -> "ExtendedPoint":
+        """
+        Convert the point to extended homogeneous coordinates (X:Y:Z:T) where x = X/Z, y = Y/Z, and T = XY/Z.
+        """
+        X = self.x
+        Y = self.y
+        Z = FieldElement(1)
+        T = X * Y
+        return ExtendedPoint(X, Y, Z, T)
+    
+    @staticmethod
+    def identity() -> "Point":
+        """
+        Return the identity point of the group, which is (0, 1) in affine coordinates.
+        """
+        return Point(FieldElement(1), 0, FieldElement(0))
+
+
+@dataclass
+class ExtendedPoint:
+    """
+    A class that represents points in extended homogeneous coordinates (X:Y:Z:T) where x = X/Z, y = Y/Z, and T = XY/Z.
+    This is used for faster point addition and doubling.
+    """
+    X: FieldElement
+    Y: FieldElement
+    Z: FieldElement
+    T: FieldElement
+
+    def to_affine_coordinates(self) -> Point:
+        """
+        Convert the point from extended homogeneous coordinates back to affine coordinates (x, y).
+        """
+        x = self.X / self.Z
+        y = self.Y / self.Z
+        is_odd = int(x.value & 1)
+        return Point(y, is_odd, x)
+    
+    def __add__(self, other: "ExtendedPoint") -> "ExtendedPoint":
+        """
+        Add two points using the extended homogeneous coordinates for faster addition.
+        Section 3.1 from Twisted Edwards Curves Revisited (Hisil et al., 2008).
+        """
+        # Point 1 
+        X1, Y1, Z1, T1 = self.X, self.Y, self.Z, self.T
+        # Point 2
+        X2, Y2, Z2, T2 = other.X, other.Y, other.Z, other.T
+
+        # Compute the sum using extended homogeneous coordinates formulas
+        # For twisted Edwards curve with a = -1: -x^2 + y^2 = 1 + d*x^2*y^2
+        A = X1 * X2
+        B = Y1 * Y2
+        C = d * T1 * T2
+        D = Z1 * Z2
+        E = (X1 + Y1) * (X2 + Y2) - A - B
+        F = D - C
+        G = D + C
+        H = B + A  # For a = -1: H = B - a*A = B - (-1)*A = B + A
+        X3 = E * F
+        Y3 = G * H
+        Z3 = F * G
+        T3 = E * H
+
+        return ExtendedPoint(X3, Y3, Z3, T3)
+
+    def double(self) -> "ExtendedPoint":
+        """
+        Double a point on the Edwards curve.
+        """
+        return self + self
+    
+    def __eq__(self, other: object) -> bool:
+        """
+        Check if two points are equal.
+        """
+        if not isinstance(other, ExtendedPoint):
+            return NotImplemented
+        return self.X == other.X and self.Y == other.Y and self.Z == other.Z and self.T == other.T
+    
+    def to_affine_coordinates(self) -> Point:
+        """
+        Convert the point from extended homogeneous coordinates back to affine coordinates (x, y).
+        """
+        x = self.X / self.Z
+        y = self.Y / self.Z
+        is_odd = int(x.value & 1)
+        return Point(y, is_odd, x)
+    
+    @staticmethod
+    def identity() -> "ExtendedPoint":
+        """
+        Return the identity point of the group in extended homogeneous coordinates, which is (0:1:1:0).
+        """
+        return ExtendedPoint(FieldElement(0), FieldElement(1), FieldElement(1), FieldElement(0))
 
 
 if __name__ == "__main__":

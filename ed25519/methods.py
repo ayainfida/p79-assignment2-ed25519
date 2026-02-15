@@ -1,16 +1,16 @@
-from .point import Point
+from .point import ExtendedPoint, Point
 
-def double_and_add(k: int, Pt: Point) -> Point:
+def double_and_add(k: int, Pt: Point | ExtendedPoint) -> Point | ExtendedPoint:
     """
     Perform scalar multiplication using the double-and-add method.
     
     Args:
         k (int): The scalar multiplier.
-        Pt (Point): The point to multiply.
+        Pt (Point | ExtendedPoint): The point to multiply.
     Returns: 
-        (Point): The resulting point kP.
+        (Point | ExtendedPoint): The resulting point kP.
     """
-    assert isinstance(Pt, Point), "Pt must be a Point"
+    assert isinstance(Pt, Point) or isinstance(Pt, ExtendedPoint), "Pt must be a Point or ExtendedPoint instance."
     assert k >= 1, "k must be a positive integer"
 
     if k == 1:
@@ -21,7 +21,7 @@ def double_and_add(k: int, Pt: Point) -> Point:
         return double_and_add((k - 1) // 2, Pt).double() + Pt
     
 if __name__ == "__main__":
-    from .encodiing import decode_little_endian, decode_scalar, encode_coordinate
+    from .encoding import decode_little_endian, decode_scalar, encode_coordinate
     sk = bytes.fromhex("f5e5767cf153319517630f226876b86c8160cc583bc013744c6bf255f5cc0ee5")
     from hashlib import sha512
     hash = sha512(sk).hexdigest()

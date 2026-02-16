@@ -60,8 +60,6 @@ def clamp_scalar(k: bytes) -> bytes:
 def decode_scalar(k: bytes) -> int:
     """
     Decode a 32-byte little-endian byte sequence to a clamped scalar integer.
-    I did clamping first before decoding as per RFC 7748; it's the other way around in lecture notes.
-    However, the result is the same either way.
     """
     assert len(k) == 32, "Input must be 32 bytes long."
     

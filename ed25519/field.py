@@ -124,6 +124,12 @@ class Field_q(ModInt):
     A class that represents an element of the finite field defined by the prime q used in Ed25519.
     """
     p: ClassVar[int] = 2**252 + 27742317777372353535851937790883648493
+
+    def __init__(self, value: int, p: int = p):
+        if p is None:
+            p = self.p
+        super().__init__(value, p)
+
     
 if __name__ == "__main__":
     # Example usage

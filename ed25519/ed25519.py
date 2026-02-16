@@ -1,6 +1,8 @@
 from enum import Enum
 from os import urandom
 
+from ed25519.field import Field_q
+
 from .point import Point
 from hashlib import sha512
 from .methods import double_and_add
@@ -97,16 +99,16 @@ class ED25519:
         prefix = h[32:]
 
         # Compute the public key from the secret scalar
-        secret_scalar = decode_scalar(s_bytes)
+        secret_scalar = Field_q(decode_scalar(s_bytes))
         pk = self.derive_public_key(sk)
 
         r = sha512(prefix + message.message_bytes).digest()
-        r_scalar = decode_little_endian(r) % q
-        R = point_compression(self.scalar_mult(r_scalar, self.base_point))
+        r_scalar = Field_q(decode_little_endian(r))
+        R = point_compression(self.scalar_mult(r_scalar.value, self.base_point))
 
-        k = decode_little_endian(sha512(R + pk.key_bytes + message.message_bytes).digest()) % q
+        k = Field_q(decode_little_endian(sha512(R + pk.key_bytes + message.message_bytes).digest()))
 
-        t = encode_little_endian((r_scalar + k * secret_scalar) % q)
+        t = encode_little_endian((r_scalar + k * secret_scalar).value)
 
         signature = Signature(R + t)
 

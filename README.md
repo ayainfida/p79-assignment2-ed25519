@@ -40,6 +40,7 @@ examples/
 
 report/
 └── P79_mafr2_A2.pdf  # report
+```
 
 ## Setup
 

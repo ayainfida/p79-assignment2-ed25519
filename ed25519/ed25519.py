@@ -74,19 +74,19 @@ class ED25519:
         # and then compressing the resulting point to get the public key bytes
         return PublicKey(point_compression(self.scalar_mult(secret_scalar, self.base_point)))
     
-    def sign(self, message: Message, sk: PrivateKey) -> Signature:
+    def sign(self, msg: Message, sk: PrivateKey) -> Signature:
         """
         Sign a message using the given private key.
         
-        :param message: The message to sign.
+        :param msg: The message to sign.
         :param sk: The private key to use for signing.
         :return: The signature bytes.
         """
         # Type and length validation at API boundary 
         if not isinstance(sk, PrivateKey):
             raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
-        if not isinstance(message, Message):
-            raise TypeError("message must be an instance of Message, given type: {}".format(type(message)))
+        if not isinstance(msg, Message):
+            raise TypeError("msg must be an instance of Message, given type: {}".format(type(msg)))
         if len(sk.key_bytes) != 32:
             raise LengthError(f"Private key must be 32 bytes long. Provided length: {len(sk.key_bytes)}")
 
@@ -103,15 +103,15 @@ class ED25519:
         secret_scalar = Field_q(decode_scalar(s_bytes))
         pk = self.derive_public_key(sk)
 
-        # Nonce generation: r = H(prefix || message) 
+        # Nonce generation: r = H(prefix || msg) 
         # This ensures that the nonce is deterministic and unique for each message, preventing nonce reuse vulnerabilities.
-        r = sha512(prefix + message.message_bytes).digest()
+        r = sha512(prefix + msg.message_bytes).digest()
         r_scalar = Field_q(decode_little_endian(r))
         # Compute the point R = r * base_point and compress it to get the first part of the signature
         R = point_compression(self.scalar_mult(r_scalar.value, self.base_point))
 
-        # Compute the scalar k = H(R || pk || message) which will be used in the signature generation
-        k = Field_q(decode_little_endian(sha512(R + pk.key_bytes + message.message_bytes).digest()))
+        # Compute the scalar k = H(R || pk || msg) which will be used in the signature generation
+        k = Field_q(decode_little_endian(sha512(R + pk.key_bytes + msg.message_bytes).digest()))
 
         # Compute the second part of the signature t = (r + k * secret_scalar)
         t = encode_little_endian((r_scalar + k * secret_scalar).value)
@@ -120,31 +120,31 @@ class ED25519:
 
         return signature
     
-    def verify(self, message: Message, signature: Signature, pk: PublicKey) -> bool:
+    def verify(self, msg: Message, sig: Signature, pk: PublicKey) -> bool:
         """
         Verify a signature for a given message and public key.
         
-        :param message: The message that the user received and wants to verify the signature for.
-        :param signature: The signature received.
+        :param msg: The message that the user received and wants to verify the signature for.
+        :param sig: The signature received.
         :param pk: The public key of the sender who claimed to send this message.
         :return: True if the signature is valid, False otherwise.
         """
         # Type and length validation at API boundary 
-        if not isinstance(message, Message):
-            raise TypeError("message must be an instance of Message, given type: {}".format(type(message)))
-        if not isinstance(signature, Signature):
-            raise TypeError("signature must be an instance of Signature, given type: {}".format(type(signature)))
+        if not isinstance(msg, Message):
+            raise TypeError("msg must be an instance of Message, given type: {}".format(type(msg)))
+        if not isinstance(sig, Signature):
+            raise TypeError("sig must be an instance of Signature, given type: {}".format(type(sig)))
         if not isinstance(pk, PublicKey):
             raise TypeError("pk must be an instance of PublicKey, given type: {}".format(type(pk)))
         
-        if len(signature.signature_bytes) != 64:
-            raise LengthError(f"Signature must be 64 bytes long. Provided length: {len(signature.signature_bytes)}")
+        if len(sig.signature_bytes) != 64:
+            raise LengthError(f"Signature must be 64 bytes long. Provided length: {len(sig.signature_bytes)}")
         if len(pk.key_bytes) != 32:
             raise LengthError(f"Public key must be 32 bytes long. Provided length: {len(pk.key_bytes)}")
         
         # Split signature into R (encoded point) and S (scalar)
-        R_bytes = signature.signature_bytes[:32]
-        t_bytes = signature.signature_bytes[32:]
+        R_bytes = sig.signature_bytes[:32]
+        t_bytes = sig.signature_bytes[32:]
 
         # If t is not in the range [0, q), the signature is invalid (since t is supposed to be a scalar mod q) ~ Section 5.1.7. of RFC 8032
         if decode_little_endian(t_bytes) >= q:
@@ -157,8 +157,8 @@ class ED25519:
 
             # Decode t and k from the signature and the message
             t = Field_q(decode_little_endian(t_bytes))
-            # Recompute the scalar k = H(R || pk || message) 
-            k = Field_q(decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()))
+            # Recompute the scalar k = H(R || pk || msg) 
+            k = Field_q(decode_little_endian(sha512(R_bytes + pk.key_bytes + msg.message_bytes).digest()))
 
             # Verify the signature by checking if the equation holds: t * base_point == R + k * pk_point
             lhs = self.scalar_mult(t.value, self.base_point)

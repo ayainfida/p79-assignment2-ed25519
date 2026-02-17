@@ -82,7 +82,7 @@ The repo includes an Ed25519 signature demo that supports two types of point add
 python -m examples.demo_ed25519
 
 # Using extended coordinates (faster)
-python -m examples.demo_ed25519 -f
+python -m examples.demo_ed25519 --f
 ```
 
 This generates a random key pair for Alice, signs a message, and verifies the signature.

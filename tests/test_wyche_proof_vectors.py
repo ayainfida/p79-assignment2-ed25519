@@ -6,7 +6,6 @@ class TestWycheProof(unittest.TestCase):
     def setUp(self):
         self.ed25519 = ED25519()
         self.ed25519_fast = ED25519(ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT) 
-        self.count = 0   
         with open("tests/json/project_wyche_proof_ed25519_test.json") as f:
             self.data = json.load(f)
 
@@ -52,7 +51,6 @@ class TestWycheProof(unittest.TestCase):
                 metadata = self._set_test_metadata(pk=pk, msg=msg, sig=sig, result=expected)
 
                 self._test_vector(metadata, ed25519_instance)
-                self.count += 1
 
     def test_wycheproof_vectors(self):
         self._test_wycheproof_vectors(self.ed25519)

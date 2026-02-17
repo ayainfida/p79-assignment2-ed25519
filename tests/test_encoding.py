@@ -1,8 +1,8 @@
 import unittest
 import random
 from ed25519 import Point
-from ed25519.field import FieldElement
 from ed25519.defaults import p
+from ed25519.field import FieldElement
 from ed25519.encoding import point_decompression, point_compression, decode_scalar, decode_little_endian
 
 class TestEncoding(unittest.TestCase):    

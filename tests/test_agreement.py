@@ -1,7 +1,6 @@
-import os
 import unittest
+from os import urandom
 from ed25519 import ED25519, ED25519ScalarMultAlgorithm, Message
-# from x25519.encoding import decode_x_coordinate
 
 class TestX25519Agreement(unittest.TestCase):
     def setUp(self):
@@ -30,8 +29,8 @@ class TestX25519Agreement(unittest.TestCase):
         for _ in range(self.runs):
             sk = self.ed25519.generate_private_key()
             # Generate a random message between 0 to 2048 bytes to test with
-            msg_num_bytes = int(os.urandom(2).hex(), 16) % 2049
-            msg = Message(os.urandom(msg_num_bytes))
+            msg_num_bytes = int(urandom(2).hex(), 16) % 2049
+            msg = Message(urandom(msg_num_bytes))
             sig_1 = self.ed25519.sign(msg, sk)
             sig_2 = self.ed25519_fast.sign(msg, sk)
 
@@ -47,14 +46,13 @@ class TestX25519Agreement(unittest.TestCase):
             pk = self.ed25519.derive_public_key(sk)
 
             # Generate a random message between 0 to 2048 bytes to test with    
-            msg_num_bytes = int(os.urandom(2).hex(), 16) % 2049
-            msg = Message(os.urandom(msg_num_bytes))
+            msg_num_bytes = int(urandom(2).hex(), 16) % 2049
+            msg = Message(urandom(msg_num_bytes))
             sig = self.ed25519.sign(msg, sk)
 
             # Both algorithms should verify the same signature successfully
             self.assertTrue(self.ed25519.verify(msg, sig, pk))
-            self.assertTrue(self.ed25519_fast.verify(msg, sig, pk))
-        
+            self.assertTrue(self.ed25519_fast.verify(msg, sig, pk))    
 
 if __name__ == "__main__":
     unittest.main()

@@ -168,8 +168,6 @@ class TestED25519Boundary(unittest.TestCase):
 
         # The two signatures should be identical
         self.assertEqual(signature1.signature_bytes, signature2.signature_bytes)
-    
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -27,6 +27,7 @@ class TestWycheProof(unittest.TestCase):
         expected = metadata['result']
 
         # Test signature verification
+        # Added try-except to catch Exceptions that are raised for invalid lengths or invalid points
         try:
             verification_result = ed25519_instance.verify(msg, sig, pk)
         except ValueError:

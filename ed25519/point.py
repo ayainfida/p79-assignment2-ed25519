@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-
-from .field import FieldElement
-
 from .defaults import d
-
+from .field import FieldElement
+from dataclasses import dataclass
 
 @dataclass
 class Point:
@@ -156,10 +153,14 @@ class ExtendedPoint:
         B = Y1 * Y2
         C = d * T1 * T2
         D = Z1 * Z2
+
+        # Compute mixed products
         E = (X1 + Y1) * (X2 + Y2) - A - B
         F = D - C
         G = D + C
         H = B + A  # For a = -1: H = B - a*A = B - (-1)*A = B + A
+
+        # Final coordinates of the resulting point
         X3 = E * F
         Y3 = G * H
         Z3 = F * G
@@ -187,8 +188,3 @@ class ExtendedPoint:
         Return the identity point of the group in extended homogeneous coordinates, which is (0:1:1:0).
         """
         return ExtendedPoint(FieldElement(0), FieldElement(1), FieldElement(1), FieldElement(0))
-
-
-if __name__ == "__main__":
-    x = Point(y=FieldElement(1), sign=1)
-    print((x + x).x, (x + x).y)

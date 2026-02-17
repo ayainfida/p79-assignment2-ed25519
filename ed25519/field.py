@@ -129,21 +129,3 @@ class Field_q(ModInt):
         if p is None:
             p = self.p
         super().__init__(value, p)
-
-    
-if __name__ == "__main__":
-    # Example usage
-    p = 2**255 - 19
-    a = FieldElement(10)
-    b = FieldElement(20)
-    
-    print("a + b =", (a + b).value)
-    print("a - b =", (a - b).value)
-    print("a * b =", (a * b).value)
-    print("a / b =", (a / b).value)
-
-    p1 = 101
-    n = 1030
-
-    print("p1 mod 8 =", p1 % 8)
-    print((p+3) //8)

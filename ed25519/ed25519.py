@@ -156,13 +156,13 @@ class ED25519:
             pk_point = point_decompression(pk.key_bytes)
 
             # Decode t and k from the signature and the message
-            t = decode_little_endian(t_bytes) % q
+            t = Field_q(decode_little_endian(t_bytes))
             # Recompute the scalar k = H(R || pk || message) 
-            k = decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()) % q
+            k = Field_q(decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()))
 
             # Verify the signature by checking if the equation holds: t * base_point == R + k * pk_point
-            lhs = self.scalar_mult(t, self.base_point)
-            right_side = R + self.scalar_mult(k, pk_point)
+            lhs = self.scalar_mult(t.value, self.base_point)
+            right_side = R + self.scalar_mult(k.value, pk_point)
 
         except ValueError:
             return False

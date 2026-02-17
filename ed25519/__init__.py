@@ -1,5 +1,5 @@
-from .ed25519 import ED25519ScalarMultAlgorithm, ED25519
 from .point import Point, ExtendedPoint
+from .ed25519 import ED25519ScalarMultAlgorithm, ED25519
 from .primitives import PrivateKey, PublicKey, Signature, Message
 
 __all__ = [

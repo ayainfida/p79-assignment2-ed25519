@@ -1,9 +1,10 @@
 
 from dataclasses import dataclass
 
-# Exception defined for handling length errors in keys and signatures
-class LengthError(ValueError):
-    pass
+"""
+This module defines the basic data structures for keys,
+signatures, and messages used in the Ed25519 signature scheme.
+"""
 
 @dataclass(frozen=True)
 class Key:
@@ -38,3 +39,7 @@ class Message:
     A class representing a message in the Ed25519 signature scheme.
     """
     message_bytes: bytes
+
+# Exception defined for handling length errors in keys and signatures
+class LengthError(ValueError):
+    pass

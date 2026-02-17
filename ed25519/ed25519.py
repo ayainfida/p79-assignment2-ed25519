@@ -1,10 +1,8 @@
 from enum import Enum
 from os import urandom
-
-from ed25519.field import Field_q
-
 from .point import Point
 from hashlib import sha512
+from .field import Field_q
 from .methods import double_and_add
 from .defaults import BASE_X_SIGN, BASE_Y, q
 from .primitives import LengthError, PrivateKey, PublicKey, Signature, Message
@@ -32,13 +30,14 @@ class ED25519:
         :param Pt: The point to multiply.
         :return: The resulting point kP.
         """
-        if self.algorithm == ED25519ScalarMultAlgorithm.SCALAR_MULT or self.algorithm == ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT:
-            result = double_and_add(k, Pt)
+        if self.algorithm == ED25519ScalarMultAlgorithm.SCALAR_MULT:
+            result = double_and_add(k, Pt) # incase of scalar_mult, we can directly use the Point type
         elif self.algorithm == ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT:
-            result = double_and_add(k, Pt.to_extended_coordinates())
+            result = double_and_add(k, Pt.to_extended_coordinates()) # in case of fast_scalar_mult, we need to convert the point to ExtendedPoint before performing the scalar multiplication
         else:
             raise ValueError(f"Unsupported algorithm: {self.algorithm}")
         
+        # For the fast_scalar_mult algorithm, the result will be in extended coordinates, so we convert it back to Point
         if not isinstance(result, Point):
             return result.to_affine_coordinates()
         return result
@@ -57,6 +56,7 @@ class ED25519:
         :param sk: The private key to derive the public key from.
         :return: The corresponding public key.
         """
+        # Type and length validation at API boundary 
         if not isinstance(sk, PrivateKey):
             raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
         
@@ -82,6 +82,7 @@ class ED25519:
         :param sk: The private key to use for signing.
         :return: The signature bytes.
         """
+        # Type and length validation at API boundary 
         if not isinstance(sk, PrivateKey):
             raise TypeError("sk must be an instance of PrivateKey, given type: {}".format(type(sk)))
         if not isinstance(message, Message):
@@ -89,7 +90,7 @@ class ED25519:
         if len(sk.key_bytes) != 32:
             raise LengthError(f"Private key must be 32 bytes long. Provided length: {len(sk.key_bytes)}")
 
-        # Hash the private key to get a secret scalar and a nonce
+        # Hash the private key to get a secret scalar and a deterministic nonce
         h = sha512(sk.key_bytes).digest()
 
         # We split the hash into two parts: 
@@ -102,12 +103,17 @@ class ED25519:
         secret_scalar = Field_q(decode_scalar(s_bytes))
         pk = self.derive_public_key(sk)
 
+        # Nonce generation: r = H(prefix || message) 
+        # This ensures that the nonce is deterministic and unique for each message, preventing nonce reuse vulnerabilities.
         r = sha512(prefix + message.message_bytes).digest()
         r_scalar = Field_q(decode_little_endian(r))
+        # Compute the point R = r * base_point and compress it to get the first part of the signature
         R = point_compression(self.scalar_mult(r_scalar.value, self.base_point))
 
+        # Compute the scalar k = H(R || pk || message) which will be used in the signature generation
         k = Field_q(decode_little_endian(sha512(R + pk.key_bytes + message.message_bytes).digest()))
 
+        # Compute the second part of the signature t = (r + k * secret_scalar)
         t = encode_little_endian((r_scalar + k * secret_scalar).value)
 
         signature = Signature(R + t)
@@ -123,6 +129,7 @@ class ED25519:
         :param pk: The public key of the sender who claimed to send this message.
         :return: True if the signature is valid, False otherwise.
         """
+        # Type and length validation at API boundary 
         if not isinstance(message, Message):
             raise TypeError("message must be an instance of Message, given type: {}".format(type(message)))
         if not isinstance(signature, Signature):
@@ -135,6 +142,7 @@ class ED25519:
         if len(pk.key_bytes) != 32:
             raise LengthError(f"Public key must be 32 bytes long. Provided length: {len(pk.key_bytes)}")
         
+        # Split signature into R (encoded point) and S (scalar)
         R_bytes = signature.signature_bytes[:32]
         t_bytes = signature.signature_bytes[32:]
 
@@ -143,57 +151,20 @@ class ED25519:
             return False
 
         try:
+            # Decompress R and public key point
             R = point_decompression(R_bytes)
-            t = decode_little_endian(t_bytes) % q
-
-            k = decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()) % q
-
             pk_point = point_decompression(pk.key_bytes)
 
+            # Decode t and k from the signature and the message
+            t = decode_little_endian(t_bytes) % q
+            # Recompute the scalar k = H(R || pk || message) 
+            k = decode_little_endian(sha512(R_bytes + pk.key_bytes + message.message_bytes).digest()) % q
+
+            # Verify the signature by checking if the equation holds: t * base_point == R + k * pk_point
             lhs = self.scalar_mult(t, self.base_point)
             right_side = R + self.scalar_mult(k, pk_point)
+
         except ValueError:
             return False
         
         return lhs == right_side
-    
-
-# if __name__ == "__main__":
-#     edd = ED25519(algorithm=ED25519Algorithm.FAST_SCALAR_MULT)
-#     msg = Message(b"")
-#     sk = bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
-#     pk = edd.derive_public_key(PrivateKey(sk))
-#     print("Public Key:", pk.key_bytes.hex())
-#     sig = edd.sign(msg, PrivateKey(sk))
-#     print("Signature:", sig.signature_bytes.hex())
-#     is_valid = edd.verify(msg, sig, pk)
-#     print("Signature is valid:", is_valid)
-
-    # msg1 = Message(bytes.fromhex("72")) 
-    # sk1 = bytes.fromhex("4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb")
-    # pk1 = edd.derive_public_key(PrivateKey(sk1))
-    # print("Public Key:", pk1.key_bytes.hex())
-    # sig1 = edd.sign(msg1, PrivateKey(sk1))
-    # print("Signature:", sig1.signature_bytes.hex())
-    # is_valid1 = edd.verify(msg1, sig1, pk1)
-    # print("Signature is valid:", is_valid1)
-
-    # msg2 = Message(bytes.fromhex("af82"))
-    # print("Message:", msg2.message_bytes.hex())
-    # sk2 = bytes.fromhex("c5aa8df43f9f837bedb7442f31dcb7b166d38535076f094b85ce3a2e0b4458f7")
-    # pk2 = edd.derive_public_key(PrivateKey(sk2))
-    # print("Public Key:", pk2.key_bytes.hex())
-    # sig2 = edd.sign(msg2, PrivateKey(sk2))
-    # print("Signature:", sig2.signature_bytes.hex())
-    # is_valid2 = edd.verify(msg2, sig2, pk2)
-    # print("Signature is valid:", is_valid2)
-
-    # msg3 = Message(bytes.fromhex("08b8b2b733424243760fe426a4b54908632110a66c2f6591eabd3345e3e4eb98fa6e264bf09efe12ee50f8f54e9f77b1e355f6c50544e23fb1433ddf73be84d879de7c0046dc4996d9e773f4bc9efe5738829adb26c81b37c93a1b270b20329d658675fc6ea534e0810a4432826bf58c941efb65d57a338bbd2e26640f89ffbc1a858efcb8550ee3a5e1998bd177e93a7363c344fe6b199ee5d02e82d522c4feba15452f80288a821a579116ec6dad2b3b310da903401aa62100ab5d1a36553e"))
-    # print("Message:", msg3.message_bytes.hex())
-    # sk3 = bytes.fromhex("f5e5767cf153319517630f226876b86c8160cc583bc013744c6bf255f5cc0ee5")
-    # pk3 = edd.derive_public_key(PrivateKey(sk3))
-    # print("Public Key:", pk3.key_bytes.hex())
-    # sig3 = edd.sign(msg3, PrivateKey(sk3))
-    # print("Signature:", sig3.signature_bytes.hex())
-    # is_valid3 = edd.verify(msg3, sig3, pk3)
-    # print("Signature is valid:", is_valid3)

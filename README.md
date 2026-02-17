@@ -106,18 +106,6 @@ ed25519 = ED25519(ED25519ScalarMultAlgorithm.SCALAR_MULT)
 
 # Ed25519 using fast point addition
 ed25519_fast = ED25519(ED25519ScalarMultAlgorithm.FAST_SCALAR_MULT)
-
-# Generate keys
-sk = ed25519.generate_private_key()
-pk = ed25519.derive_public_key(sk)
-
-# Sign a message
-msg = Message(b"Hello, world!")
-signature = ed25519.sign(msg, sk)
-
-# Verify signature
-is_valid = ed25519.verify(msg, signature, pk)
-print(f"Signature valid: {is_valid}")
 ```
 
 ## References

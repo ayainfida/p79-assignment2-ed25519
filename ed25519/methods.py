@@ -20,6 +20,6 @@ def double_and_add(k: int, Pt: Point | ExtendedPoint) -> Point | ExtendedPoint:
     elif k & 1 == 0: # k is even: we double the point
         return double_and_add(k // 2, Pt).double()
     else: # k is odd: we first double and then add the original point
-    # type: ignore (Added type ignore to suppress mypy error about adding Point and ExtendedPoint. 
+    # Added type ignore to suppress mypy error about adding Point and ExtendedPoint. 
     # Since this is recursive, the type will always be correct at runtime, and same as what we passed initially.)
-        return double_and_add((k - 1) // 2, Pt).double() + Pt 
+        return double_and_add((k - 1) // 2, Pt).double() + Pt # type: ignore
